@@ -1,0 +1,585 @@
+---
+title: 'Mineria de dades: PAC1'
+author: "Autor: Guillem Pla Bertran"
+date: "Octubre 2022"
+output:
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+    includes:
+      in_header: 05.584-PAC-header.html
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+*****
+# Exercici 1:
+*****
+
+> El projecte de mineria de dades proposat és un estudi sobre dades de diverses estacions meteorològiques. Aquestes estacions estan repartides per una regió relativament petita. Estan connectades a internet i poden enviar les seves dades en temps real a un o diversos ordinadors.
+>
+> La primera fase consisteix a definir la tasca. El propòsit d'aquesta fase és saber què es vol aconseguir i definir quin tipus de projecte de mineria de dades és (trobar similituds, classificar, predir, descriure o explicar). 
+> En aquest cas, l'objectiu és predir la temperatura d'un indret de la regió on no hi hagi cap estació. D'aquesta forma es podrien estalviar molts recursos, ja que no caldria instal·lar més estacions.
+>
+> La segona fase consisteix a fer una selecció de les dades. En aquesta fase es busca obtenir les dades necessàries per a poder dur a terme el projecte. Això no sempre és una tasca fàcil, perquè no sempre s'emmagatzemen les dades amb la finalitat de ser analitzades. 
+> En aquest cas, cal obtenir les dades en cru dels diversos ordinadors on estan emmagatzemades. Tanmateix, també es podria intentar buscar altres dades d'estacions, encara que no pertanyin a la mateixa regió. La idea seria intentar tenir el màxim de dades possible.
+>
+> La tercera fase consisteix a preparar les dades per a poder ser tractades. Aquesta fase és molt important perquè si no, per molt esforç que es posi en la creació de models, no s'aconseguiran resultats satisfactoris. Per tant, cal assegurar-se que les dades tenen prou qualitat, que siguin les necessàries i que estiguin en la forma adequada. Per a assolir això cal netejar-les, transformar-les i reduir-ne la dimensionalitat. 
+> Com ja s'ha comentat anteriorment, en el projecte plantejat les estacions meteorològiques capten les dades i les envien en temps real a un altre ordinador mitjançant internet. Tenint en compte aquestes circumstàncies, és molt possible que les dades no sempre siguin prou bones. 
+> Pot passar que els sensors no estiguin ben calibrats, que s'hagi espatllat momentàniament algun sensor, que durant un temps s'hagi perdut la connexió a internet (i, per tant, les dades). Per tot això, cal fer una anàlisi exhaustiva de les dades per a poder detectar quins registres són incomplets i quins són inconsistents. Un cop detectats, s'hauran de tractar per eliminar-los o aplicar algun mètode (com calcular la mitjana dels valors) per substituir-los.
+> Un cop es disposi de dades netes, les dades ja es podran transformar. Segons el model que es pretengui fer servir més endavant, caldrà normalitzar les dades. També es poden discretitzar els valors per a millorar la velocitat en el procés d'entrenament i reduir l'emmagatzematge, entre d'altres.
+> Per tancar aquesta fase, el que es pot fer és reduir la dimensionalitat de les dades. Com que l'objectiu és predir la temperatura en un indret, és possible que alguns atributs no siguin rellevants per a generar el model final i que alguns atributs siguin equivalents. Per tant, cal fer-ne una selecció dels més útils. 
+>
+> La quarta fase consisteix a crear els models. La fita d'aquesta etapa és cercar el model que tingui un millor resultat per al nostre propòsit. En conseqüència, cal explorar el conjunt de models possibles i avaluar-los correctament per a poder decidir quin és l'adequat. És molt probable que comprovar tots els models possibles sigui impossible, doncs, el que es fa és començar per pocs models i modificar-los progressivament per a poder intuir quin d'ells donarà millor resultat.
+> En aquest cas, es podrien provar models com els arbres de decisió, la regressió lineal i logística i les xarxes neuronals, ja que, aquest es fan servir sovint en projectes predictius. Per a avaluar els models creats s'haurà de crear una mètrica que penalitzi en funció de la distància entre el valor predit i el valor real.
+>
+> Finalment, l'última i cinquena fase consisteix a integrar els resultats. El que es vol en aquest punt és posar en marxa tota la feina realitzada. Cal desenvolupar un programa que permeti executar el model generat i que retorni la informació adequada.
+> En el cas del projecte proposat, caldria dissenyar una API que retorni les prediccions segons l'indret seleccionat. Un cop dissenyada aquesta API, es podria integrar fàcilment dins d'una pàgina web.
+>
+> És important tenir en compte que les fases descrites no cal que s'executin de forma seqüencial. El més habitual és que el procés es faci de forma iterativa.
+
+
+*****
+# Exercici 2:
+*****
+
+Els accidents de trànsit són una de les pricipals causes de mort de qualsevol país. És per això, que es destinen molts recursos en diferents àmbits a paliar els efectes dels accidents. Com a analistes de dades, podem intentar aportar el nostre gra de sorra i intentar reduir la quantitat de morts a la carretera.
+
+L'objectiu d'aquest projecte és intentar explicar i aportar nou coneixement sobre els accidents de cotxe mortals. La idea final és que se'n puguin extreure conclusions per a ajudar conductors i administracions a reduïr ferits, morts i danys materials.
+
+
+## Descripció de les dades
+
+Les dades escollides són les recopilades per la [National Highway Traffic Safety Administration (NHTSA)](https://www.nhtsa.gov/). Són una organització governamental dels Estats Units d'Amèrica que tenen per objectiu salvar vides, evitar lesions i reduir els costos econòmics que es deriven dels accidents de trànsit. Ho fan mitjançant l'educació i la recerca, entre altres.
+
+Aquesta associacó publica les dades [Fatality Analysis Reporting System (FARS)](https://www.nhtsa.gov/crash-data-systems/fatality-analysis-reporting-system) que són les que es faran servir en aquesta anàlisi. Les dades es poden trobar [aquí](https://www.nhtsa.gov/file-downloads?p=nhtsa/downloads/FARS/). És un cens d'accidents mortals de trànsit, conté dades de 50 estats dels EUA, el districte de Columbia i Puerto Rico. 
+
+Les primeres dades disponibles es remunten a l'any 1975. Això implica que els fitxers presenten diferències entre ells, hi ha alguns paràmetres que s'han discontinuat en el temps i alguns que s'ha canviat la forma de presentar-los. És important tenir en compte que les dades han sigut tractades per un equip d'analistes, és a dir, no són dades en cru i han passat per processos de revisió per a suprimir errors. 
+
+Per a que un accident estigui en aquestes dades ha de complir una sèrie de condicions:
+
+* L'accident inclou, com a mínim, un vehicle a motor.
+
+* El vehicle conduia per una carretera oberta al públic.
+
+* Ha acabat en la mort d'algú implicat en l'accident dins dels 30 primers dies des d'aquest.
+
+
+El conjunt de dades consta de diversos fitxers `.csv`. El més important és `accident.CSV`. Aquest conté la informació bàsica de cada accident. La resta de fitxers aporten informació complementària sobre cada accident.
+
+
+## Entendre les dades
+
+Com s'ha comentat en la secció anterior, el fitxer `accident.CSV` és la base de tot el conjunt de dades. Per tant, es comença l'anàlisi a partir d'aquest.
+
+Primer de tot, cal tenir més informació sobre aquestes dades. És important saber quants registres tenim, quins atributs hi ha, de quin tipus són els atributs. També s'ha de conèixer si les dades contenen errors o camps buits.
+
+Per la documentació disponible es pot saber quins camps estan disponibles, quants n'hi ha i què volen dir:
+
+| **Atribut**  | **Descripció**                                            |
+|--------------|-----------------------------------------------------------|
+| STATE        | Codi de l'estat on ha passat l'accident                   |
+| STATENAME    | Nom de l'estat                                            |
+| ST_CASE      | Identificador del cas                                     |
+| VE_TOTAL     | Nombre de vehicles implicats                              |
+| VE_FORMS     | Nombre de vehicles de motor en transport                  |
+| PVH_INVL     | Nombre de vehicles aparcats o treballant                  |
+| PEDS         | Nombre de persones fora de vehicles de motor              |
+| PERSONS      | Nombre de persones en vehicles de motor                   |
+| PERMVIT      | Nombre de persones en vehicles de motor en transport      |
+| PERNOTMVIT   | Nombre de persones fora de vehicles de motor en transport |
+| COUNTY       | Codi del comptat                                          |
+| COUNTYNAME   | Nom del comptat                                           |
+| CITY         | Codi de la ciutat                                         |
+| CITYNAME     | Nom de la ciutat                                          |
+| DAY          | Dia de l'accident                                         |
+| DAYNAME      | Dia de l'accident                                         |
+| MONTH        | Mes de l'accident                                         |
+| MONTHNAME    | Nom del mes de l'accident                                 |
+| YEAR         | Any de l'accident                                         |
+| DAY_WEEK     | Número de la setmana de l'accident                        |
+| DAY_WEEKNAME | Dia de la setmana de l'accident                           |
+| HOUR         | Hora de l'accident (24h)                                  |
+| HOURNAME     | Hora de l'accident (am/pm)                                |
+| MINUTE       | Minut de l'accident                                       |
+| MINUTENAME   | Minut de l'accident                                       |
+| NHS          | Pertany o no al Sistema Nacional de Carreteres (bool)     |
+| NHSNAME      | Pertany o no al Sistema Nacional de Carreteres            |
+| ROUTE        | Codi de la senyalització de la ruta                       |
+| ROUTENAME    | Nom de la senyalització de la ruta                        |
+| TWAY_ID      | Identificador de via de trànsit                           |
+| TWAY_ID2     | Indentificador de via de trànsit                          |
+| RUR_URB      | Codi de l'ús de la terra                                  |
+| RUR_URBNAME  | Nom de l'ús de la terra                                   |
+| FUNC_SYS     | Codi del sistema funcional                                |
+| FUNC_SYSNAME | Nom del sistema funcional                                 |
+| RD_OWNER     | Codi del propietari de la carretera                       |
+| RD_OWNERNAME | Nom del propietari de la carretera                        |
+| MILEPT       | Punt quilomètric                                          |
+| MILEPTNAME   | Punt quilomètric                                          |
+| LATITUDE     | Latitud                                                   |
+| LATITUDENAME | Latitud                                                   |
+| LONGITUD     | Longitud                                                  |
+| LONGITUDNAME | Longitud                                                  |
+| SP_JUR       | Codi de la jurisdicció especial                           |
+| SP_JURNAME   | Nom de la jurisdicció especial                            |
+| HARM_EV      | Codi del primer esdeveniment que fa lesions               |
+| HARM_EVNAME  | Nom del primer esdeveniment que fa lesions                |
+| MAN_COLL     | Codi de la posició dels vehicles                          |
+| MAN_COLLNAME | Nom de la posició dels vehicles                           |
+| RELJCT1      | Codi de si hi ha cruïlla                                  |
+| RELJCTNAME   | Nom de si hi ha cruïlla                                   |
+| RELJCT2      | Codi d'encreuament                                        |
+| RELJCT2NAME  | Nom de l'encreuament                                      |
+| TYP_INT      | Codi del tipus d'intersecció                              |
+| TYP_INTNAME  | Nom del tipus d'intersecció                               |
+| WRK_ZONE     | Codi del tipus de zona de treball                         |
+| WRK_ZONENAME | Nom del tipus de zona de treball                          |
+| REL_ROAD     | Codi de relació amb la via de trànsit                     |
+| REL_ROADNAME | Nom de relació amb la via de trànsit                      |
+| LGT_COND     | Codi de les condicions lumíniques                         |
+| LGT_CONDNAME | Nom de les condicions lumíniques                          |
+| WEATHER      | Codi de les condicions atmosfèriques                      |
+| WEATHERNAME  | Nom de les condicions atmosfèriques                       |
+| SCH_BUS      | Codi de la relació amb un autobus escolar                 |
+| SCH_BUSNAME  | Nom de la relació amb un autobus escolar                  |
+| RAIL         | Codi de l'identificador del pas a nivell del ferrocarril  |
+| RAILNAME     | Nom de l'identificador del pas a nivell del ferrocarril   |
+| NOT_HOUR     | Hora de la notificació (24h)                              |
+| NOT_HOURNAME | Hora de la notificació (am/pm)                            |
+| NOT_MIN      | Minut de la notificació                                   |
+| NOT_MINNAME  | Minut de la notificació                                   |
+| ARR_HOUR     | Hora d'arribada a l'escena (24h)                          |
+| ARR_HOURNAME | Hora d'arribada a l'escena (am/pm)                        |
+| ARR_MIN      | Minut d'arribada a l'escena                               |
+| ARR_MINNAME  | Minut d'arribada a l'escena                               |
+| HOSP_HR      | Hora d'arribada a l'hospital (24h)                        |
+| HOSP_HRNAME  | Hora d'arribada a l'hospital (am/pm)                      |
+| HOSP_MN      | Minut d'arribada a l'hospital                             |
+| HOSP_MNNAME  | Minut d'arribada a l'hospital                             |
+| FATALS       | Nombre d'èxitus                                           |
+| DRUNK_DR     | Codi de conductors beguts                                 |
+
+En total tenim 81 atributs. Com es pot observar, la majoria estan repetits, en uns s'hi mostra la codificació i en uns altres s'hi mostra la descripció de la variable.
+
+Ara ja es poden carregar les dades.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+path <- "../data/accident.CSV"
+accident_data <- read.csv(path, row.names = NULL)
+
+# Guardem una còpia de l'original, que no tocarem, per si l'hem de recuperar més tard
+accident_data_original <- accident_data
+```
+
+I es pot fer una petita previsualització de les dades.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+head(accident_data)
+```
+
+A més, també és útil veure'n un resum.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+summary(accident_data)
+```
+
+Finalment, se'n pot visualitzar l'estructura de les dades.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+str(accident_data)
+```
+
+
+## Preparació de les dades
+
+### Anàlisi dels atributs buits
+
+Es necessari saber quants valors són buits, ja que, depén de quants valors buits hi hagi a una columna o fila, caldrà aplicar-li un tractament o un altre.
+
+La següent funció mostra quina proporció de dades buides (`""`) o de dades no disponibles (`NA`) hi ha per cada columna, i ho ordena de més a menys.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+sort(colMeans(is.na(accident_data) | accident_data == ""), decreasing = TRUE)
+```
+
+Es pot observar que només un dels camps té valors buits, es tracta del camp `TWAY_ID2` que indica una de les vies on s'ha produit l'accident. 
+
+No cal fer-li cap tractament, ja que, només es fa servir per a identificar una de les vies quan l'accident ha tingut lloc en una cruïlla entre dos carreteres. És a dir, que no cal fer-la servir perquè ja tenim l'atribut `TWAY_ID1`.
+
+
+### Discretizació dels atributs
+
+La discretització consisteix en establir un criteri que permeti dividir els valors d'un atribut en dos o més conjunts disjunts.
+
+Com que aquest conjunt de dades ja ha sigut tractat prèviament, hi ha algunes variables que ja han estat discretitzades. Però, encara pot ser útil discretitzar alguna variable númerica més.
+
+La variable `PEDS` que indica el nombre de vianats implicats en l'accident es pot discretizar, ja que, no aporta gaire informació el nombre total de vianants implicats en l'accident. En aquest cas, és més interessant saber si hi ha hagut vianants implicats o no.
+
+El següent codi transforma els valors més grans que `0` en `1`, i deixa els `0` tal i com estan. Ara, l'atribut `PEDS` conté `0` si no hi va haver cap vianant implicat, i conté `1` si n'hi va haver `1` o més.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+if (!require("arules")) install.packages("arules"); library("arules")
+
+accident_data$PEDS <- discretize(accident_data$PEDS, method="fixed", breaks = c(-Inf, 1, Inf), labels = c(0, 1))
+summary(accident_data$PEDS)
+```
+
+
+Una altra variable que es pot discretitzar és l'hora en que ha passat l'accident (`HOUR`). Pot ser interessant agrupar les hores pel moment del dia en què ha passat.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+accident_data$HOUR_MOMENT <- discretize(accident_data$HOUR, method="fixed", breaks = c(0, 4, 11, 14, 18, 22, 24), labels = c(0, 1, 2, 3, 4, 5))
+accident_data$HOUR_MOMENTNAME <- discretize(accident_data$HOUR, method="fixed", breaks = c(0, 4, 11, 14, 18, 22, 24), labels = c("Early morning", "Morning", "Noon", "After noon", "Evening", "Night"))
+summary(accident_data$HOUR_MOMENT)
+summary(accident_data$HOUR_MOMENTNAME)
+```
+
+
+### Construcció de variables noves
+
+En el conjunt de dades actual disposem de l'hora de notificació (`NOT_HOUR`, `MIN_HOUR`), l'hora d'arribada dels serveis d'emergències (`ARR_HOUR`, `ARR_MIN`) i l'hora d'arribada de les víctimes a l'hospital (`HOSP_HR`, `HOSP_MN`).
+
+També disposem dels atributs `HOUR` i `MINUTE`, que són l'hora i el minut en que ha passat l'accident. 
+
+Aquests atributs poden ser útils, però segurament és més útil saber el temps que ha passat des que ha passat o s'ha notificat l'accident fins que han arribat els serveis d'emergències i fins que s'ha arribat a l'hospital. Per això, en el següent *script* es creen les noves variables.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+if (!require("purrr")) install.packages("purrr"); library("purrr")
+
+delta_time <- function(first_time, second_time) {
+  delta <- difftime(first_time, second_time, units = "mins")
+  delta <- as.numeric(delta)
+
+  if (!is.na(delta) & delta < 0) {
+    delta <- difftime(first_time + 86400, second_time, units = "mins")
+    delta <- as.numeric(delta)
+  }
+  return(delta)
+}
+
+delta_vector <- function(first_vector, second_vector) {
+  if (length(first_vector) != length(second_vector)) {
+    return(c())
+  }
+
+  result_vector <- c()
+  for (i in 1:length(first_vector)) {
+    first_time <- first_vector[i]
+    second_time <- second_vector[i]
+    delta <- delta_time(first_time, second_time)
+    result_vector <- c(result_vector, delta)
+  }
+  return(result_vector)
+}
+
+join_hour_min <- function(hour, min) {
+  # not interested in year, month. Only in hour min
+  time <- paste("1900-01-01 ", hour, ":", min, ":00", sep = "")
+  time <- strptime(time, "%Y-%m-%d %H:%M:%S")
+  return(time)
+}
+
+crash_joined <- join_hour_min(accident_data$HOUR, accident_data$MINUTE)
+notification_joined <- join_hour_min(accident_data$NOT_HOUR, accident_data$NOT_MIN)
+arrival_joined <- join_hour_min(accident_data$ARR_HOUR, accident_data$ARR_MIN)
+hospital_joined <- join_hour_min(accident_data$HOSP_HR, accident_data$HOSP_MN)
+
+crash_arrival <- delta_vector(arrival_joined, crash_joined)
+crash_hospital <- delta_vector(hospital_joined, crash_joined)
+arrival_hospital <- delta_vector(hospital_joined, arrival_joined)
+
+notification_arrival <- delta_vector(arrival_joined, notification_joined)
+notification_hospital <- delta_vector(hospital_joined, notification_joined)
+arrival_hospital <- delta_vector(hospital_joined, arrival_joined)
+
+accident_data$DTIME_CRASH_ARRIVAL <- crash_arrival
+accident_data$DTIME_CRASH_HOSPITAL <- crash_hospital
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+summary(accident_data$DTIME_CRASH_ARRIVAL)
+summary(accident_data$DTIME_CRASH_HOSPITAL)
+```
+
+Un cop executada aquesta funció, es pot observar que molts resultats són `NA`. Això d'entrada pot resultar molt confús, perquè en l'anàlisi realitzat anteriorment hem vist com no hi havia cap `NA`. Això es deu a que els analistes que han tractat aquestes dades han recodificat els `NA` per altres codis. En el cas de les hores `99` significa que no es té dades i `88` vol dir que no aplica. 
+
+De moment, no s'inclouen totes les noves variables dins del dataset. Només han sigut incloses les que es consideren més rellevants (`DTIME_CRASH_ARRIVAL`, `DTIME_CRASH_HOSPITAL`).
+
+
+### Normalització d'atributs
+
+En principi, no caldria normalitzar cap atribut, ja que, no es faran servir models de xarxes neuronals ni mètodes basats en distàncies.
+
+Tanmateix, se'n poden normalitzar alguns per si més endavant es necessiten. Els atributs que es normalitzen són `FATALS`, `DRUNK_DR`, `VE_TOTAL`, `VE_FORMS`, `PVH_INVL`, `PERSONS`, `PERMVIT`, `PERNOTMVIT`, `DTIME_CRASH_ARRIVAL` i `DTIME_CRASH_HOSPITAL`.
+
+Es fa servir la normalització basada en la desviació estàndard per a tenir en compte la distribució actual dels valors.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+selected_attr = c("FATALS", "DRUNK_DR", "VE_TOTAL", "VE_FORMS", "PVH_INVL", "PERSONS", "PERMVIT", "PERNOTMVIT", "DTIME_CRASH_ARRIVAL", "DTIME_CRASH_HOSPITAL")
+accident_data_aux <- accident_data[, selected_attr]
+accident_data_norm <- as.data.frame(scale(accident_data_aux))
+
+summary(accident_data_norm)
+```
+
+
+### Esborrar atributs innecessàris
+
+Com s'ha pogut observar, hi ha moltes variables repetides que només aporten una descripció de les variables categòriques numèriques. És evident que treballar amb tots dos tipus d'atributs alhora és innecessàri, per això, es podria optar per esborrar-ne un tipus o un altre. També es pot fer és tenir dos còpies del *Data Frame*. Un *Data Frame* amb les dades numèriques i un altre amb les dades descriptives, així es pot escollir quin es vol fer servir en cada moment.
+
+El següent codi crea tots dos *Data Frames*. Del conjunt de dades original se'n treu les columnes que no interessen.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+numeric_cat_attr <- c("STATE", "COUNTY", "CITY", "DAY", "MONTH", "DAY_WEEK", "HOUR", "MINUTE", "NHS", 
+                      "ROUTE", "RUR_URB", "FUNC_SYS", "RD_OWNER", "MILEPT", "LATITUDE", "LONGITUD", 
+                      "SP_JUR", "HARM_EV", "MAN_COLL", "RELJCT1", "RELJCT2", "TYP_INT", "WRK_ZONE",
+                      "REL_ROAD", "LGT_COND", "WEATHER", "SCH_BUS", "RAIL", "NOT_HOUR", "NOT_MIN",
+                      "ARR_HOUR", "ARR_MIN", "HOSP_HR", "HOSP_MN", "HOUR_MOMENT")
+descriptive_cat_attr <- c("STATENAME", "COUNTYNAME", "CITYNAME", "DAYNAME", "MONTHNAME", "DAY_WEEKNAME", "HOURNAME", "MINUTENAME", "NHSNAME", 
+                      "ROUTENAME", "RUR_URBNAME", "FUNC_SYSNAME", "RD_OWNERNAME", "MILEPTNAME", "LATITUDENAME", "LONGITUDNAME", 
+                      "SP_JURNAME", "HARM_EVNAME", "MAN_COLLNAME", "RELJCT1NAME", "RELJCT2NAME", "TYP_INTNAME", "WRK_ZONENAME",
+                      "REL_ROADNAME", "LGT_CONDNAME", "WEATHERNAME", "SCH_BUSNAME", "RAILNAME", "NOT_HOURNAME", "NOT_MINNAME",
+                      "ARR_HOURNAME", "ARR_MINNAME", "HOSP_HRNAME", "HOSP_MNNAME", "HOUR_MOMENTNAME", "TWAY_ID", "TWAY_ID2", "RAIL")
+
+accident_data_numeric <- accident_data[, -which(names(accident_data) %in% descriptive_cat_attr)]
+accident_data_names <- accident_data[, -which(names(accident_data) %in% numeric_cat_attr)]
+
+head(accident_data_numeric)
+head(accident_data_names)
+```
+
+
+## Visualització de les dades
+
+Per seguir entenent les dades cal visualitzar-les. Aquesta secció conté una sèrie de gràfics que ajuden a comprendre millor les dades.
+
+### Lloc de l'accident
+
+El primer que es pot fer és veure on ha succeït cada accident. Per fer-ho es dibuixen tots els accidents sobre el mapa dels Estats Units d'Amèrica.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+if (!require("maps")) install.packages("maps"); library("maps")
+
+map(database="state")
+symbols(accident_data$LONGITUD, accident_data$LATITUDE, fg = 'red', squares = rep(1, length(accident_data$LONGITUD)), inches=0.03, add=TRUE)
+```
+
+Com podem veure, la majoria dels accidents han passat en els estats de l'est i en les zones més properes a la costa oest. Això segurament es deu a que són les zones més poblades del país. 
+
+Per comprovar-ho, cal afegir les dades de població de cada estat. Les dades han sigut extretes de la web del [census del govern dels EUA](https://www.census.gov/data/tables/time-series/demo/popest/2020s-state-total.html) i emmagatzemades en un fitxer `.csv`.
+
+En aquest tros de codi es calcula el nombre d'accidents totals per estat, la població de cada estat i finalment, la proporció d'accidents per milió que hi ha a cada estat.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+if (!require("dplyr")) install.packages("dplyr"); library("dplyr")
+
+path <- "../data/us_states_population.csv"
+states_population <- read.csv(path, row.names = NULL)
+states_population
+
+states_count <- accident_data %>% group_by(STATENAME) %>% tally()
+states_data <- data.frame(STATENAME = states_count$STATENAME, COUNT = states_count$n)
+states_data <- merge(states_data, states_population, by="STATENAME")
+states_data$ACCIDENT_PROPORTION <- (states_data$COUNT / states_data$POPULATION)*1000000
+states_data <- states_data[order(-states_data$ACCIDENT_PROPORTION), ]
+head(states_data)
+```
+
+Com es pot observar, els estats on es produeixen més accidents per habitant són Mississippi, Wyoming, Arkansas, South Carolina, Montana i New Mexico.
+
+
+## Distribució dels atributs
+
+En una anàlisi de les dades, és important també conèixer com estan distribuides. 
+
+Per això, a continuació es mostren histogrames d'algunes de les variables numèriques.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+if (!require("ggplot2")) install.packages("ggplot2"); library("ggplot2")
+if (!require("Rmisc")) install.packages("Rmisc"); library("Rmisc")
+if (!require("dplyr")) install.packages("dplyr"); library("dplyr")
+if (!require("xfun")) install.packages("xfun"); library("xfun")
+```
+
+
+### Defuncions i conductors beguts
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+histList <- list()
+
+dist_attr <- c("FATALS", "DRUNK_DR")
+accident_data_aux <- accident_data[, which(names(accident_data) %in% dist_attr)]
+for(i in 1:ncol(accident_data_aux)){
+  col <- names(accident_data_aux)[i]
+  ggp <- ggplot(accident_data_aux, aes_string(x = col)) +
+    geom_histogram(bins = 30, ggtittle = "Comptador d'ocurrències per variable") 
+      histList[[i]] <- ggp  # afegim cada plot a la llista buida
+}
+multiplot(plotlist = histList, cols = 1)
+```
+
+Seguint l'exemple de l'exercici 2 es pot pintar dos (o més) gràfiques alhora.
+
+Això permet veure que la gran majoria d'accidents només tenen una defunció. I també que en la màjoria d'accidents no hi cap conductor implicat. També es pot veure que és molt complicat que hi hagi més d'un conductor begut en el mateix accident.
+
+
+### Persones i vehicles implicats
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+histList <- list()
+
+dist_attr <- c("PERSONS", "VE_TOTAL")
+accident_data_aux <- accident_data[, which(names(accident_data) %in% dist_attr)]
+head(accident_data_aux)
+for(i in 1:ncol(accident_data_aux)){
+  col <- names(accident_data_aux)[i]
+  ggp <- ggplot(accident_data_aux, aes_string(x = col)) +
+    geom_histogram(bins = 30, ggtittle = "Comptador d'ocurrències per variable") 
+      histList[[i]] <- ggp  # afegim cada plot a la llista buida
+}
+multiplot(plotlist = histList, cols = 1)
+```
+
+En aquests casos la distribució també tendeix cap a l'esquerra. En el cas de persones implicades i de vehicles implicats, la majoria d'accidents en tenen una o dos.
+
+Aquest fet sembla totalment lògic, perquè normalment no hi acostuma a haver-hi accidents mortals amb gaires vehicles imlicats. I excepte en casos puntuals (hi ha vianants implicats), el nombre de vehicles determina el nombre de persones implicades en un accident.
+
+
+### Temps d'arribada dels serveis d'emergències i temps d'arribada als hospitals
+
+Abans s'ha calculat dos variables noves. Ara és el moment de comprovar quina informació contenen.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+histList <- list()
+
+dist_attr <- c("DTIME_CRASH_ARRIVAL", "DTIME_CRASH_HOSPITAL")
+accident_data_aux <- accident_data[, which(names(accident_data) %in% dist_attr)]
+head(accident_data_aux)
+for(i in 1:ncol(accident_data_aux)){
+  col <- names(accident_data_aux)[i]
+  ggp <- ggplot(accident_data_aux, aes_string(x = col)) +
+    geom_histogram(bins = 30, ggtittle = "Comptador d'ocurrències per variable") 
+      histList[[i]] <- ggp  # afegim cada plot a la llista buida
+}
+multiplot(plotlist = histList, cols = 1)
+```
+
+Com en el cas anterior, s'estan analitzant dos variables que tenen molt a veure entre elles. És lògic veure que les seves distribucions són molt similars.
+
+Es veu que en la majoria de casos els temps són entre `0` i `250` minuts. Però, també es poden observar valors extrems rn que el temps d'arribada està a prop dels `1500` minuts (25 hores). 
+
+Cal anar en compte amb aquests casos, ja que, és possible que sigui un error de càlcul o de trascripció de les dades.
+
+
+### Moment del dia
+
+També és interessant saber en quin moment del dia es produeixen més accidents.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+plot(accident_data$HOUR_MOMENTNAME, main="Nombre d'accidents segons el moment del dia", xlab="Moment del dia", ylab="Nombre d'accidents")
+```
+
+Es pot observar que els moments el dia en què passen més accidents són durant el matí i durant el vespre. Això té sentit, ja que són les hores en què més gent es mou amb cotxe, a més, la visisbilitat no és tan bona.
+
+
+### Dia de la setmana
+
+El dia de la setmana també pot ser important de cara que hi hagi més accidents.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+ggplot(accident_data, aes(x=accident_data$DAY_WEEK)) + geom_histogram(binwidth=.5)
+```
+
+Podem veure com els divendres, els dissabtes i els diumenges hi ha més accidents mortals que la resta de dies. Això es pot deure a que els caps de setmana que hi ha més trànsit.
+
+
+## Correlacions entre atributs
+
+Es vol veure quines variables estan relacionades entre si. El que interessa es veure com afecten les diferents variables al nombre de morts de l'accident.
+
+
+### Matriu de correlació
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+remove_attr = c("STATE", "ST_CASE", "PEDS", "COUNTY", "CITY", "DAY", "MONTH", "YEAR", "DAY_WEEK", "HOUR", "MINUTE", 
+                "NHS", "ROUTE", "FUNC_SYS", "RD_OWNER", "MILEPT", "LATITUDE", "LONGITUD", "SP_JUR", "RELJCT1", 
+                "RELJCT2", "TYP_INT", "REL_ROAD", "SCH_BUS", "NOT_HOUR", "NOT_MIN", "ARR_HOUR", "ARR_MIN", "HOSP_HR",
+                "HOSP_MN", "HOUR_MOMENT", "VE_FORMS", "MAN_COLL", "WRK_ZONE", "LGT_COND", "DTIME_CRASH_HOSPITAL",
+                "PERNOTMVIT", "PERMVIT", "DTIME_CRASH_ARRIVAL")
+accident_data_corr <- accident_data_numeric[, -which(names(accident_data_numeric) %in% remove_attr)]
+str(accident_data_corr)
+
+panel_hist <- function(x, ...) {
+    # https://r-coder.com/correlation-plot-r/
+    usr <- par("usr")
+    on.exit(par(usr))
+    par(usr = c(usr[1:2], 0, 1.5))
+    his <- hist(x, plot = FALSE)
+    breaks <- his$breaks
+    nB <- length(breaks)
+    y <- his$counts
+    y <- y/max(y)
+    rect(breaks[-nB], 0, breaks[-1], y, col = rgb(0.8, 0.5, 0.5, alpha = 1.0), ...)
+    # lines(density(x), col = 2, lwd = 2) # Uncomment to add density lines
+}
+
+panel_corr <- function(x, y, digits = 2, prefix = "", cex.cor, ...) {
+    # https://r-coder.com/correlation-plot-r/
+    usr <- par("usr")
+    on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    Cor <- abs(cor(x, y)) # Remove abs function if desired
+    txt <- paste0(prefix, format(c(Cor, 0.123456789), digits = digits)[1])
+    if(missing(cex.cor)) {
+        cex.cor <- 0.4 / strwidth(txt)
+    }
+    text(0.5, 0.5, txt,
+         cex = 1 + cex.cor * Cor) # Resize the text by level of correlation
+}
+
+# Plot correlation matrix
+pairs(accident_data_corr,
+      upper.panel = panel_corr,
+      diag.panel = panel_hist)
+```
+
+Aquest codi pinta una *scatter plot matrix*, les distribucions dels atributs seleccionats i la correlació que hi ha entre ells. Es pot observar com no hi ha gaire relació entre cap de les variables, i menys amb el nombre de morts.
+
+
+### Meteorologia
+
+També és interessant saber si la meteorologia pot jugar un factor important en el nombre de morts.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+remove_weather <- c("Reported as Unknown", "Not Reported", "Other")
+accident_data_weather <- accident_data[-which(accident_data$WEATHERNAME %in% remove_weather), ]
+
+ggplot(accident_data_weather, aes(x = accident_data_weather$WEATHERNAME, y = accident_data_weather$FATALS)) + 
+  geom_histogram(stat = "identity") +
+  labs(x = "Tipus de temps", y = "Nombre de morts")
+```
+
+Com podem observar, la majoria de morts es produeixen quan està seré, però això és evident, ja que és així la majoria de dies. Podem veure també que hi ha més morts quan està embromat que quan plou, però es pot deure al mateix motiu.
+
+Caldria estudiar la climatologia del país i els estats per poder-ne treure conclusions.
+
+
+### Carreteres rurals
+
+Prèviament s'ha pogut veure com hi ha uns estats que pateixen més accidents que uns altres, és interessant saber si aquells estats són més rurals que els altres. Una carretera rural podria implicar més risc.
+
+
+## Conclusions
+
+Aquest projecte de mineria de dades ha servit per estudiar superficialment les dades del FARS referents als accidents de trànsit mortals als Estats Units. En el cas d'aquest estudi s'ha fet servir dades de l'any 2020.
+
+En les dades hi ha registres dels accidents de trànsit amb mínim un mort. Després de revisar les dades es pot dir que semblen un molt bon conjunt per a treballar. Els camps han sigut tractats prèviament i sembla que s'han corregit molt bé els possibles errors. Sorprén, que a part de la qualitat de les dades, es disposi d'una gran quantitat de registres i de diferents anys. A més, en diverses taules hi ha informació derivada de cada accident mortal.
+
+Durant l'anàlisi s'ha pogut veure que els caps de setmana hi ha més accidents mortals, possiblement es deu al fet que més gent es deplaça per anar de vacances. En un futur treball, es podria estudiar si aquesta observació també es compleix els dies festius i en llocs on la gent acostuma a fer vacances.
+
+També s'ha pogut observar que en els moments que la gent agafa més el cotxe per anar a treballar, el matí i el vespre, es donen més accidents.
+
+La meteorologia també juga un factor important en les morts per accident de trànsit. Però cal treballar més les dades per entrendre en quines condicions és més fàcil que es produeixi un accident mortal.
+
+S'ha pogut observar que els estats de Mississippi, Wyoming, Arkansas, South Carolina, Montana i New Mexico tenen una proporció més alta d'accidents mortals que la resta. A primera vista es pot pensar que el fet que siguin estats més rurals pot tenir quelcom a veure. Caldria comprovar si tenen pitjors carreteres o els serveis d'emergència tarden més en arribar.
+
+Com ja s'ha comentat per donar respostes sòlides a per què passen els accidents mortals caldria fer una anàlisi molt més profunda. Però, aquesta primera aproximació, permet comprendre molt millor les dades i saber cap on anar en futurs projectes.
